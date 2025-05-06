@@ -48,8 +48,8 @@ def create_pdf(data: Dict[str, object], out_path: str | None = None) -> str:
     story: List[object] = []
 
     story.append(Paragraph("Data Assistant Report", styles["Title"]))
-    story.append(Paragraph(f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}",
-                            styles["Normal"]))
+    timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
+    story.append(Paragraph(timestamp_text, styles["Normal"]))
     story.append(Spacer(1, 12))
     story.append(_build_table(data))
 
