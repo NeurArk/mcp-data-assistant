@@ -17,7 +17,8 @@ with gr.Blocks() as demo:
 
 if __name__ == "__main__":
     # Ensure the static folder exists and export the schema for docs
-    import os, pathlib
+    import os
+    import pathlib
     pathlib.Path("static").mkdir(exist_ok=True)
     demo.save_schema("static/schema.json")
     
