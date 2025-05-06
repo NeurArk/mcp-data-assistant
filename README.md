@@ -17,6 +17,13 @@ pip install -r requirements.txt
 python app.py          # open http://localhost:7860
 ```
 
+## Docker
+```bash
+docker build -t neurark/mcp-data-assistant .
+docker run -p 7860:7860 neurark/mcp-data-assistant
+# open http://localhost:7860
+```
+
 ▶ **Demo** — open [`sample_docs/report-demo.pdf`](sample_docs/report-demo.pdf)
 
 ## How it works
