@@ -3,8 +3,9 @@
 ![CI](https://github.com/NeurArk/mcp-data-assistant/workflows/CI/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 📄 [MCP schema](static/schema.json)
+🔖 [Latest release](https://github.com/NeurArk/mcp-data-assistant/releases/latest)
 
-**Data Assistant MVP v0.1** – a fully-local Model Context Protocol
+**Data Assistant MVP v0.2** – a fully-local Model Context Protocol
 server that lets any modern LLM:
 
 * **run_sql** – safely query a SQLite database  
