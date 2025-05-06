@@ -12,7 +12,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Image
 import matplotlib.pyplot as _plt
-import tempfile, os
+import tempfile
+import os
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
