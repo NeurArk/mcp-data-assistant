@@ -49,6 +49,6 @@ if __name__ == "__main__":
         if response.status_code == 200:
             with open("static/schema.json", "w") as f:
                 f.write(json.dumps(response.json(), indent=2))
-            print(f"Schema saved to static/schema.json")
+            print("Schema saved to static/schema.json")
     except Exception as e:
         print(f"Failed to save schema: {e}")

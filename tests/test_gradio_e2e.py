@@ -1,4 +1,9 @@
-import subprocess, time, requests, os, signal, sys
+import subprocess
+import time
+import requests
+import os
+import signal
+import sys
 import pytest
 from gradio_client import Client
 from pathlib import Path
@@ -41,7 +46,7 @@ def test_mcp_end_to_end(tmp_path):
         client = Client("http://127.0.0.1:7860")
         print(f"Available endpoints: {client.view_api()}")
         
-        # Test SQL tool - use the "/predict" endpoint which was automatically created for the Interface
+        # Test SQL tool - use the "/predict" endpoint (auto-created for the Interface)
         result = client.predict("SELECT 1 AS one", api_name="/predict")
         assert result == [{"one": 1}]
     finally:
