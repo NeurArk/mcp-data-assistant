@@ -1,42 +1,38 @@
 """
-PDF report generator for the MCP Data Assistant.
-
-`create_pdf(data: dict, out_path: str | None = None) -> str`
-------------------------------------------------------------
-* Builds a one-page A4 PDF using reportlab.
-* Shows a title, timestamp, and a table (key | value) for each item
-  in *data*.
-* Returns the absolute path of the file created.
+Professional PDF generator using ReportLab.
 """
 
 from __future__ import annotations
 
 import datetime as _dt
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
-from reportlab.pdfgen import canvas
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
 REPORT_DIR = Path(__file__).resolve().parent.parent / "reports"
 REPORT_DIR.mkdir(exist_ok=True)
 
 
+def _build_table(data: Dict[str, object]) -> Table:
+    rows: List[List[object]] = [["Field", "Value"]]
+    styles = [
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+    ]
+    for idx, (k, v) in enumerate(data.items(), start=1):
+        rows.append([k, v])
+        if idx % 2 == 1:  # alternate row shading (skip header row)
+            styles.append(("BACKGROUND", (0, idx), (-1, idx), colors.whitesmoke))
+        if k == "grand_total":
+            styles.append(("FONTNAME", (1, idx), (1, idx), "Helvetica-Bold"))
+    return Table(rows, style=TableStyle(styles))
+
+
 def create_pdf(data: Dict[str, object], out_path: str | None = None) -> str:
-    """
-    Create a PDF report from the provided data dictionary.
-    
-    Args:
-        data: Dictionary of key-value pairs to include in the report
-        out_path: Optional output path, defaults to reports/report-TIMESTAMP.pdf
-        
-    Returns:
-        Absolute path to the created PDF file
-        
-    Raises:
-        ValueError: If data is empty
-    """
     if not data:
         raise ValueError("data cannot be empty.")
 
@@ -45,37 +41,22 @@ def create_pdf(data: Dict[str, object], out_path: str | None = None) -> str:
         out_path = REPORT_DIR / f"report-{timestamp}.pdf"
     else:
         out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Create a new PDF with ReportLab
-    c = canvas.Canvas(str(out_path), pagesize=A4)
-    width, height = A4  # Width and height in points
-    
-    # Add title
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, height - 50, "Data Assistant Report")
-    
-    # Add timestamp
-    c.setFont("Helvetica", 10)
-    c.drawString(50, height - 70, 
-                f"Generated: {_dt.datetime.now().isoformat(sep=' ', timespec='seconds')}")
-    
-    # Add data rows
-    c.setFont("Helvetica", 12)
-    start_y = height - 90
-    line_height = 20
-    
-    for idx, (k, v) in enumerate(data.items(), start=1):
-        y = start_y - idx * line_height
-        if y < 50:  # avoid writing off-page
-            break
-        c.drawString(50, y, f"{k}: {v}")
-    
-    # Save the PDF
-    c.save()
-    
+    doc = SimpleDocTemplate(str(out_path), pagesize=A4)
+    styles = getSampleStyleSheet()
+    story: List[object] = []
+
+    story.append(Paragraph("Data Assistant Report", styles["Title"]))
+    timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
+    story.append(Paragraph(timestamp_text, styles["Normal"]))
+    story.append(Spacer(1, 12))
+    story.append(_build_table(data))
+
+    doc.build(story)
     return str(out_path.resolve())
 
 
 if __name__ == "__main__":
-    demo_path = create_pdf({"hello": "world", "number": 42})
-    print("PDF created at", demo_path)
+    demo = {"customer": "ACME", "grand_total": 1234}
+    print(create_pdf(demo))
