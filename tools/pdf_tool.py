@@ -58,7 +58,15 @@ def create_pdf(
     # logo (if file exists)
     logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
     if logo_path.exists():
-        story.append(Image(str(logo_path), width=120, height=40))
+        story.append(
+            Image(
+                str(logo_path),
+                width=80,
+                height=80,
+                kind="proportional",
+                hAlign="CENTER",
+            )
+        )
         story.append(Spacer(1, 6))
 
     story.append(Paragraph("Data Assistant Report", styles["Title"]))
@@ -74,14 +82,15 @@ def create_pdf(
         if len(numeric_items) >= 3:
             labels, values = zip(*numeric_items.items())
             fig, ax = _plt.subplots()
-            ax.bar(range(len(labels)), values)  # default colours
-            ax.set_ylabel("Value")
+            ax.bar(range(len(labels)), values, color="#143d8d")  # NeurArk blue
+            ax.set_ylabel("Value (€)")
             ax.set_xticks(range(len(labels)))
             ax.set_xticklabels(labels, rotation=45, ha="right")
+            fig.tight_layout()
             tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             fig.savefig(tmp.name, bbox_inches="tight")
             _plt.close(fig)
-            story.append(Spacer(1, 12))
+            story.append(Spacer(1, 24))
             story.append(Image(tmp.name, width=400, height=250))
             tmp_png = tmp.name
 
