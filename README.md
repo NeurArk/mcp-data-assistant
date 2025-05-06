@@ -17,6 +17,8 @@ pip install -r requirements.txt
 python app.py          # open http://localhost:7860
 ```
 
+▶ **Demo** — open [`sample_docs/report-demo.pdf`](sample_docs/report-demo.pdf)
+
 ## How it works
 The app launches Gradio with `mcp_server=True`.  
 The LLM discovers three tools via the MCP schema and chains them as
