@@ -1,13 +1,39 @@
 """
-SQL query tool for executing read-only queries against the local database.
+SQL query tool for executing read-only queries against a database.
 
 This module provides functionality to safely execute SELECT queries against
-the project's SQLite database and return results in a structured format.
+either PostgreSQL (when DB_URL env var is set) or the project's SQLite database,
+and return results in a structured format.
 """
 import os
 import sqlite3
 import pathlib
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
+import pandas as pd
+from sqlalchemy import create_engine, Engine, text
+
+
+def get_engine() -> Engine:
+    """
+    Creates a database engine based on environment settings.
+    
+    If DB_URL environment variable starts with postgresql://, returns a PostgreSQL engine.
+    Otherwise, returns a SQLite engine pointing to data/sales.db.
+    
+    Returns:
+        SQLAlchemy Engine object for database connection
+    """
+    db_url = os.getenv("DB_URL")
+    
+    if db_url and db_url.startswith("postgresql://"):
+        # Use PostgreSQL if DB_URL is set with postgresql:// protocol
+        return create_engine(db_url, pool_pre_ping=True)
+    
+    # Default to SQLite
+    db_path = pathlib.Path(__file__).parent.parent / "data" / "sales.db"
+    sqlite_url = f"sqlite:///{db_path}"
+    return create_engine(sqlite_url)
 
 
 def _validate_query_is_select(query: str) -> bool:
@@ -43,6 +69,8 @@ def run_sql(query: str) -> List[Dict[str, Any]]:
     """
     Execute a read-only SQL query and return results as a list of dictionaries.
     
+    Works with both PostgreSQL (when DB_URL env var is set) and SQLite (default).
+    
     Args:
         query: The SQL query to execute (must be a SELECT statement)
         
@@ -52,25 +80,21 @@ def run_sql(query: str) -> List[Dict[str, Any]]:
         
     Raises:
         ValueError: If the query is not a SELECT statement
-        sqlite3.Error: If there's an issue with the database or query execution
+        Exception: Database-specific errors from the underlying engine
     """
     # Validate that this is a read-only query
     _validate_query_is_select(query)
     
-    # Path to the SQLite database
-    db_path = pathlib.Path(__file__).parent.parent / "data" / "sales.db"
+    # Get database engine (PostgreSQL or SQLite)
+    engine = get_engine()
     
-    # Execute the query
-    with sqlite3.connect(db_path) as conn:
-        # Configure connection to return rows as dictionaries
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+    try:
+        # Use pandas to execute the query and convert to dictionaries
+        # This works with both SQLite and PostgreSQL
+        df = pd.read_sql(text(query), engine)
         
-        try:
-            cursor.execute(query)
-            # Convert sqlite3.Row objects to dictionaries
-            rows = [dict(row) for row in cursor.fetchall()]
-            return rows
-        except sqlite3.Error as e:
-            # Re-raise any SQLite errors so they can be handled by the caller
-            raise
+        # Convert DataFrame to list of dictionaries
+        return df.to_dict(orient="records")
+    except Exception as e:
+        # Re-raise any database errors
+        raise

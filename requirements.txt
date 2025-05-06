@@ -73,3 +73,4 @@ urllib3==2.4.0
 uvicorn==0.34.2
 websockets==12.0
 flake8==7.2.0
+psycopg2-binary==2.9.10

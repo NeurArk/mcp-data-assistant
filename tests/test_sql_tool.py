@@ -1,6 +1,6 @@
 import pytest
 import sqlite3
-from tools.sql_tool import run_sql, _validate_query_is_select
+from tools.sql_tool import run_sql, _validate_query_is_select, get_engine
 
 
 def test_validate_query_accepts_select():
