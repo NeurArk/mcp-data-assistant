@@ -2,6 +2,7 @@
 
 ![CI](https://github.com/NeurArk/mcp-data-assistant/workflows/CI/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
+📄 [MCP schema](static/schema.json)
 
 **Data Assistant MVP v0.1** – a fully-local Model Context Protocol
 server that lets any modern LLM:

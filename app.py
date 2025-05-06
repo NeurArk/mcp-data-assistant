@@ -16,5 +16,11 @@ with gr.Blocks() as demo:
     status_btn.click(server_status, outputs=gr.Textbox())
 
 if __name__ == "__main__":
+    # Ensure the static folder exists and export the schema for docs
+    import os
+    import pathlib
+    pathlib.Path("static").mkdir(exist_ok=True)
+    demo.save_schema("static/schema.json")
+    
     # Enable MCP server for LLM tools access
     demo.launch(mcp_server=True, share=False)
