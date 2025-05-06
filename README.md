@@ -1,8 +1,25 @@
 # MCP Data Assistant
 
-This repository contains a Model Context Protocol server that lets an LLM:
-1. Run validated SQL queries against a local database.
-2. Summarise a CSV export.
-3. Generate a PDF report—entirely offline.
+![CI](https://github.com/NeurArk/mcp-data-assistant/workflows/CI/badge.svg)
+![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 
-Built with Python 3.12, Gradio 4, SQLModel, Pandas and PyPDF2.
+**Data Assistant MVP v0.1** – a fully-local Model Context Protocol
+server that lets any modern LLM:
+
+* **run_sql** – safely query a SQLite database  
+* **summarise_csv** – get quick statistics from a CSV file  
+* **create_pdf** – turn any dict into a one-page PDF report  
+
+## Quick start
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python app.py          # open http://localhost:7860
+```
+
+## How it works
+The app launches Gradio with `mcp_server=True`.  
+The LLM discovers three tools via the MCP schema and chains them as
+needed (query → analyse → generate report).
+
+Built with Python 3.12, Gradio 5, SQLModel, Pandas and ReportLab.
