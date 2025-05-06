@@ -1,7 +1,12 @@
 import gradio as gr
 
-def server_status():
-    "A dummy function to show the server is alive."
+def server_status() -> str:
+    """
+    A dummy function to show the server is alive.
+    
+    Returns:
+        str: Status message confirming the server is running
+    """
     return "✅ MCP Data Assistant server is running."
 
 with gr.Blocks() as demo:
@@ -11,5 +16,5 @@ with gr.Blocks() as demo:
     status_btn.click(server_status, outputs=gr.Textbox())
 
 if __name__ == "__main__":
-    # mcp_server=True turns this Blocks app into an MCP server
+    # Enable MCP server for LLM tools access
     demo.launch(mcp_server=True, share=False)
