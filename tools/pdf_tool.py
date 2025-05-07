@@ -50,8 +50,10 @@ def create_pdf(
     
     Args:
         data: Dictionary containing the data to include in the report
-        out_path: Optional custom path for the generated PDF file (default: reports/report-{timestamp}.pdf)
-        include_chart: Whether to include a bar chart visualization of numeric values (default: True)
+        out_path: Optional custom path for the generated PDF file 
+            (default: reports/report-{timestamp}.pdf)
+        include_chart: Whether to include a bar chart visualization of numeric values 
+            (default: True)
         
     Returns:
         Absolute path to the generated PDF file

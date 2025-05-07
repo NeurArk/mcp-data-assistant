@@ -41,7 +41,8 @@ with gr.Blocks() as demo:
         fn=create_pdf,
         inputs=[
             gr.JSON(label="Report Data"),
-            gr.Textbox(label="Output Path (optional)", placeholder="Leave empty for default location"),
+            gr.Textbox(label="Output Path (optional)", 
+                    placeholder="Leave empty for default location"),
             gr.Checkbox(label="Include Chart", value=True)
         ],
         outputs=gr.Textbox(label="Generated PDF Path"),

@@ -57,7 +57,6 @@ def test_mcp_end_to_end(tmp_path):
         assert len(csv_result["columns"]) == 3
         
         # Test PDF tool with minimal data
-        import os
         test_data = {"test_key": "test_value", "test_number": 42}
         pdf_path = client.predict(test_data, None, True, api_name="/pdf")
         assert os.path.exists(pdf_path)
