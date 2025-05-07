@@ -5,18 +5,23 @@
 📄 [MCP schema](static/schema.json)
 🔖 [Latest release](https://github.com/NeurArk/mcp-data-assistant/releases/latest)
 
-**Data Assistant MVP v0.3** – a fully-local Model Context Protocol
+**Data Assistant MVP v0.4** – a fully-local Model Context Protocol
 server that lets any modern LLM:
 
 * **run_sql** – safely query a SQLite database  
 * **summarise_csv** – get quick statistics from a CSV file  
 * **create_pdf** – turn any dict into a one-page PDF report  
+* **Assistant** – natural language interface with GPT-4.1 mini agent
 
 ## Quick start
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python app.py          # open http://localhost:7860
+
+# Or use the CLI demo (requires OpenAI API key)
+export OPENAI_API_KEY=your_api_key
+./scripts/demo_cli.py "Show me total sales for 2024 and create a PDF report"
 ```
 
 ## Docker
@@ -33,4 +38,8 @@ The app launches Gradio with `mcp_server=True`.
 The LLM discovers three tools via the MCP schema and chains them as
 needed (query → analyse → generate report).
 
-Built with Python 3.12, Gradio 5, SQLModel, Pandas and ReportLab.
+The Assistant tab provides a natural language interface using OpenAI's 
+GPT-4.1 mini model, allowing users to interact with the tools through 
+conversational prompts.
+
+Built with Python 3.12, Gradio 5.29, SQLModel, Pandas, ReportLab and OpenAI Agents SDK.
