@@ -35,8 +35,8 @@ def _build_table(data: Dict[str, object]) -> Table:
 
     # Special case handling: if we have data with a 'title' and 'data' field
     # where data is a list, process them specially for better presentation
-    if ("title" in data and "data" in data and
-            isinstance(data["data"], list) and len(data["data"]) > 0):
+    if ("title" in data and "data" in data
+            and isinstance(data["data"], list) and len(data["data"]) > 0):
         # First, add the title
         rows.append(["title", data["title"]])
         styles.append(("BACKGROUND", (0, 1), (-1, 1), colors.whitesmoke))
@@ -48,7 +48,7 @@ def _build_table(data: Dict[str, object]) -> Table:
                 for key, value in item_dict.items():
                     rows.append([key, value])
                     if i % 2 == 1:  # alternate row shading
-                        row_idx = len(rows)-1
+                        row_idx = len(rows) - 1
                         styles.append(
                             ("BACKGROUND", (0, row_idx), (-1, row_idx),
                              colors.whitesmoke)
@@ -62,7 +62,7 @@ def _build_table(data: Dict[str, object]) -> Table:
             for i, (k, v) in enumerate(other_keys.items(), start=len(rows)):
                 rows.append([k, v])
                 if i % 2 == 1:  # alternate row shading
-                    row_idx = len(rows)-1
+                    row_idx = len(rows) - 1
                     styles.append(
                         ("BACKGROUND", (0, row_idx), (-1, row_idx),
                          colors.whitesmoke)
@@ -73,8 +73,8 @@ def _build_table(data: Dict[str, object]) -> Table:
     # Standard processing for all other cases
     for idx, (k, v) in enumerate(data.items(), start=1):
         # Convert non-primitive values to better string representation
-        if (isinstance(v, list) and len(v) > 0 and
-                all(isinstance(item, dict) for item in v)):
+        if (isinstance(v, list) and len(v) > 0
+                and all(isinstance(item, dict) for item in v)):
             # If it's a list of dictionaries, try to format it better
             formatted_items = []
             for item in v:

@@ -93,7 +93,7 @@ with gr.Blocks() as tools_demo:
                 pass
             elif isinstance(data, list):
                 # Convert list to simple dictionary with indexed keys
-                items = {"item_" + str(i+1): item for i, item in enumerate(data)}
+                items = {"item_" + str(i + 1): item for i, item in enumerate(data)}
                 data = items
             else:
                 # Unsupported type - create error dict
@@ -195,7 +195,7 @@ def save_schema_with_retry(retries=3, delay=0.5):
         except Exception as e:
             if attempt < retries - 1:
                 print(
-                    f"Attempt {attempt+1}/{retries} failed: {e}. "
+                    f"Attempt {attempt + 1}/{retries} failed: {e}. "
                     f"Retrying in {delay}s..."
                 )
                 time.sleep(delay)

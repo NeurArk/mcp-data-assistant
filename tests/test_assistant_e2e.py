@@ -18,9 +18,9 @@ def test_simple_pdf_report():
     # For this test, we just check that the agent asks for clarification
     # since this request is intentionally vague
     assert "pdf" in rep.lower() and (
-        "clarify" in rep.lower() or
-        "details" in rep.lower() or
-        "specify" in rep.lower()
+        "clarify" in rep.lower()
+        or "details" in rep.lower()
+        or "specify" in rep.lower()
     )
 
 
