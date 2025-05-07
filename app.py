@@ -145,17 +145,17 @@ with gr.Blocks() as tools_demo:
 
 
 # ---------- Assistant tab ----------
-assistant_chat = gr.ChatInterface(
-    fn=answer,
-    title="NeurArk Data Assistant",
-    examples=[
-        "Show me total sales for 2024 and create a PDF report"
-    ],
-    api_name=False,  # Hide from API and MCP
-    # Specify message type explicitly to avoid warning
-    chatbot=gr.Chatbot(type="messages"),
-    type="messages"
-)
+with gr.Blocks() as assistant_chat:
+    gr.ChatInterface(
+        fn=answer,
+        title="NeurArk Data Assistant",
+        examples=[
+            "Show me total sales for 2024 and create a PDF report"
+        ],
+        api_name=False,              # hide from external MCP schema
+        chatbot=gr.Chatbot(type="messages"),
+        type="messages",
+    )
 
 
 # ---------- Tabs UI -----------------
