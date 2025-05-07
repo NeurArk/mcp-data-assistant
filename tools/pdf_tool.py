@@ -41,6 +41,26 @@ def create_pdf(
     out_path: str | None = None,
     include_chart: bool = True,
 ) -> str:
+    """
+    Generate a professional PDF report from provided data.
+    
+    Creates a PDF document with the given data formatted as a table. Optionally includes
+    a bar chart visualization of numeric values, if at least 3 numeric fields are present.
+    The PDF includes the company logo if available in the assets directory.
+    
+    Args:
+        data: Dictionary containing the data to include in the report
+        out_path: Optional custom path for the generated PDF file 
+            (default: reports/report-{timestamp}.pdf)
+        include_chart: Whether to include a bar chart visualization of numeric values 
+            (default: True)
+        
+    Returns:
+        Absolute path to the generated PDF file
+        
+    Raises:
+        ValueError: If the data dictionary is empty
+    """
     if not data:
         raise ValueError("data cannot be empty.")
 

@@ -24,6 +24,23 @@ MAX_ROWS = 1_000_000
 
 
 def summarise_csv(path: str | Path) -> Dict[str, object]:
+    """
+    Analyze a CSV file and provide summary statistics.
+    
+    Opens the CSV file using pandas and returns basic statistics including the number of rows, 
+    columns, and per-column information (name, data type, missing value count).
+    
+    Args:
+        path: Path to the CSV file (must exist and have .csv extension)
+        
+    Returns:
+        Dictionary with row_count, column_count, and detailed column information
+        
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        ValueError: If the file doesn't have a .csv extension
+        MemoryError: If the file contains more than 1,000,000 rows
+    """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"No such file: {path}")

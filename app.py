@@ -23,7 +23,35 @@ with gr.Blocks() as demo:
         outputs=gr.JSON(),
         title="SQL Query Tool",
         description="Execute read-only SQL queries",
-        examples=["SELECT 1 AS one"]
+        examples=["SELECT 1 AS one"],
+        api_name="sql"
+    )
+    
+    summarise_csv_interface = gr.Interface(
+        fn=summarise_csv,
+        inputs=gr.Textbox(label="CSV File Path"),
+        outputs=gr.JSON(),
+        title="CSV Summary Tool",
+        description="Analyze and summarize a CSV file",
+        examples=["sample_data/people.csv"],
+        api_name="csv"
+    )
+    
+    create_pdf_interface = gr.Interface(
+        fn=create_pdf,
+        inputs=[
+            gr.JSON(label="Report Data"),
+            gr.Textbox(label="Output Path (optional)", 
+                    placeholder="Leave empty for default location"),
+            gr.Checkbox(label="Include Chart", value=True)
+        ],
+        outputs=gr.Textbox(label="Generated PDF Path"),
+        title="PDF Report Generator",
+        description="Create professional PDF reports with data and optional charts",
+        examples=[
+            [{"customer": "ACME", "order_id": 12345, "total": 999, "items": 5}, None, True]
+        ],
+        api_name="pdf"
     )
     
     # Add simple UI components

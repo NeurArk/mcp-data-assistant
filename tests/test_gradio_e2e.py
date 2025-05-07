@@ -46,9 +46,21 @@ def test_mcp_end_to_end(tmp_path):
         client = Client("http://127.0.0.1:7860")
         print(f"Available endpoints: {client.view_api()}")
         
-        # Test SQL tool - use the "/predict" endpoint (auto-created for the Interface)
-        result = client.predict("SELECT 1 AS one", api_name="/predict")
+        # Test SQL tool
+        result = client.predict("SELECT 1 AS one", api_name="/sql")
         assert result == [{"one": 1}]
+        
+        # Test CSV tool
+        csv_result = client.predict("sample_data/people.csv", api_name="/csv") 
+        assert csv_result["row_count"] == 3
+        assert csv_result["column_count"] == 3
+        assert len(csv_result["columns"]) == 3
+        
+        # Test PDF tool with minimal data
+        test_data = {"test_key": "test_value", "test_number": 42}
+        pdf_path = client.predict(test_data, None, True, api_name="/pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 1000  # Ensure PDF was created and has content
     finally:
         # Clean up
         os.kill(proc.pid, signal.SIGTERM)
