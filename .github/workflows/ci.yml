@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install flake8
-      - run: flake8 app.py tools/ tests/ --max-line-length 100 --exclude=".venv/" --ignore=E302,W293,W291,E128,W292,F401,F841,E305,W503,W504
+      - run: flake8 app.py tools/ tests/ agent/ --max-line-length 120 --exclude=".venv/" --ignore=E302,W293,W291,E128,W292,E305,W503,W504,F541
 
   tests:
     runs-on: ubuntu-latest

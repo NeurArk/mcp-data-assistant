@@ -1,12 +1,13 @@
 from pathlib import Path
-import PyPDF2
 from tools.pdf_tool import create_pdf
+
 
 def _count_image_references(pdf_path: Path) -> int:
     """Count occurrences of /Subtype /Image in the raw PDF bytes"""
     with open(pdf_path, "rb") as f:
         content = f.read()
         return content.count(b"/Subtype /Image")
+
 
 def test_pdf_with_logo_and_chart(tmp_path):
     data = {"a": 1, "b": 2, "c": 3, "grand_total": 6}

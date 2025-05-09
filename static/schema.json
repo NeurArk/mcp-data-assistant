@@ -9,22 +9,12 @@
     },
     "description": "Execute a read-only SQL query and return results as a list of dictionaries. Works with both PostgreSQL (when DB_URL env var is set) and SQLite (default)."
   },
-  "csv": {
-    "type": "object",
-    "properties": {
-      "path": {
-        "type": "string",
-        "description": "Path to the CSV file (must exist and have .csv extension)"
-      }
-    },
-    "description": "Analyze a CSV file and provide summary statistics. Opens the CSV file using pandas and returns basic statistics including the number of rows, columns, and per-column information (name, data type, missing value count)."
-  },
   "pdf": {
     "type": "object",
     "properties": {
       "data_json": {
         "type": "string",
-        "description": "JSON string or object containing the data to include in the report"
+        "description": "JSON string or object containing the data to include"
       },
       "out_path": {
         "type": "string",
@@ -32,9 +22,19 @@
       },
       "include_chart": {
         "type": "boolean",
-        "description": "Whether to include a bar chart visualization of numeric values"
+        "description": "Whether to include a bar chart visualization"
       }
     },
-    "description": "Generate a professional PDF report from provided data. Creates a PDF document with the given data formatted as a table. Optionally includes a bar chart visualization of numeric values, if at least 3 numeric fields are present. The PDF includes the company logo if available in the assets directory."
+    "description": "Generate a professional PDF report from provided data. Creates a PDF document with the given data formatted as a table. Optionally includes a bar chart visualization of numeric values."
+  },
+  "csv": {
+    "type": "object",
+    "properties": {
+      "file_input": {
+        "type": "string",
+        "description": "Path to the CSV file (must exist and have .csv extension) or uploaded file"
+      }
+    },
+    "description": "Analyze a CSV file and provide summary statistics. The file can be specified as a path or uploaded directly. Returns statistics including the number of rows, columns, and per-column information (name, data type, missing value count)."
   }
 }

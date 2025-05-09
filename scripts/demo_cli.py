@@ -14,19 +14,31 @@ sys.path.append(str(parent_dir))
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger("demo_cli")
 
 
 def main():
     from agent import answer
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Set OPENAI_API_KEY first.")
+    import argparse
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--provider", default="openai", choices=["openai", "ollama"],
+                        help="Model provider to use (openai or ollama)")
+
+    # Parse known args first, then get the rest as the prompt
+    args, unknown = parser.parse_known_args()
+    provider = args.provider
+
+    # Only check OpenAI API key if using OpenAI provider
+    if provider == "openai" and not os.getenv("OPENAI_API_KEY"):
+        print("Set OPENAI_API_KEY first when using OpenAI provider.")
         exit(1)
 
-    prompt = " ".join(sys.argv[1:]) or \
-             "Give me total sales for 2024 and create a PDF report"
+    # Combine remaining arguments as the prompt
+    prompt = " ".join(unknown) or "Give me total sales for 2024 and create a PDF report"
     print("USER:", prompt)
 
     try:
@@ -40,9 +52,9 @@ def main():
                 f"{max(before_files, key=lambda p: p.stat().st_mtime)}"
             )
 
-        # Execute the agent
+        # Execute the agent with the specified provider
         logger.info("Calling agent...")
-        response = answer(prompt)
+        response, _ = answer(prompt, provider=provider)
         print("ASSISTANT:", response)
 
         # Check reports folder state after
