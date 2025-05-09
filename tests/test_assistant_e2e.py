@@ -13,15 +13,12 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_simple_pdf_report():
-    """Test that the agent asks for clarification when request is too vague."""
-    rep = answer("Create a PDF report for ACME, total 1000")
-    # For this test, we just check that the agent asks for clarification
-    # since this request is intentionally vague
-    assert "pdf" in rep.lower() and (
-        "clarify" in rep.lower()
-        or "details" in rep.lower()
-        or "specify" in rep.lower()
-    )
+    """Test that the agent can create a PDF report with minimal information."""
+    rep, _ = answer("Create a PDF report for ACME, total 1000")
+    # Check that the response mentions PDF and contains a file path
+    assert "pdf" in rep.lower() and ".pdf" in rep.lower()
+    # Check if the report was actually created
+    assert "/reports/report-" in rep
 
 
 def test_natural_language_sql_and_pdf():
@@ -32,7 +29,7 @@ def test_natural_language_sql_and_pdf():
 
     try:
         # Test with a natural language command that requires SQL + PDF
-        rep = answer("Give me total sales for 2024 and create a PDF report")
+        rep, _ = answer("Give me total sales for 2024 and create a PDF report")
         print(f"Agent response: {rep}")
 
         # 1. Check if the response mentions the correct sales total
@@ -51,12 +48,16 @@ def test_natural_language_sql_and_pdf():
 
         # 3. Check if the response contains any error mentions
         error_indicators = [
-            "error", "failed", "unable", "cannot",
-            "couldn't", "can't", "not able"
+            "error",
+            "failed",
+            "unable",
+            "cannot",
+            "couldn't",
+            "can't",
+            "not able",
         ]
         errors_in_response = [
-            indicator for indicator in error_indicators
-            if indicator in rep.lower()
+            indicator for indicator in error_indicators if indicator in rep.lower()
         ]
         if errors_in_response:
             print(
@@ -68,7 +69,7 @@ def test_natural_language_sql_and_pdf():
         pdf_found = False
 
         # Search for absolute paths
-        pdf_paths = re.findall(r'(/[\w\./\-]+\.pdf)', rep)
+        pdf_paths = re.findall(r"(/[\w\./\-]+\.pdf)", rep)
         if pdf_paths:
             print(f"Absolute PDF paths found in response: {pdf_paths}")
             # Check if at least one mentioned path exists
@@ -86,11 +87,11 @@ def test_natural_language_sql_and_pdf():
                     print(f"❌ Mentioned path doesn't exist: {path}")
 
         # Search for relative paths
-        rel_pdf_paths = re.findall(r'([\w\./\-]+\.pdf)', rep)
+        rel_pdf_paths = re.findall(r"([\w\./\-]+\.pdf)", rep)
         if rel_pdf_paths:
             print(f"Relative PDF paths found in response: {rel_pdf_paths}")
             for rel_path in rel_pdf_paths:
-                if not rel_path.startswith('/'):
+                if not rel_path.startswith("/"):
                     base_path = os.path.dirname(os.path.dirname(__file__))
                     full_path = f"{base_path}/{rel_path}"
                     if os.path.exists(full_path):
@@ -106,7 +107,9 @@ def test_natural_language_sql_and_pdf():
 
         # If no mentioned path works, check recent files
         if not pdf_found:
-            print("No PDF mentioned in the response was found. Looking for recent files...")
+            print(
+                "No PDF mentioned in the response was found. Looking for recent files..."
+            )
             base_dir = os.path.dirname(os.path.dirname(__file__))
             pattern = f"{base_dir}/reports/report-*.pdf"
             recent_pdfs = glob.glob(pattern)

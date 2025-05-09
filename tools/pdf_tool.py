@@ -14,7 +14,12 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import (
-    Image, SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    Image,
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
 )
 import matplotlib.pyplot as _plt
 
@@ -35,8 +40,12 @@ def _build_table(data: Dict[str, object]) -> Table:
 
     # Special case handling: if we have data with a 'title' and 'data' field
     # where data is a list, process them specially for better presentation
-    if ("title" in data and "data" in data
-            and isinstance(data["data"], list) and len(data["data"]) > 0):
+    if (
+        "title" in data
+        and "data" in data
+        and isinstance(data["data"], list)
+        and len(data["data"]) > 0
+    ):
         # First, add the title
         rows.append(["title", data["title"]])
         styles.append(("BACKGROUND", (0, 1), (-1, 1), colors.whitesmoke))
@@ -50,22 +59,22 @@ def _build_table(data: Dict[str, object]) -> Table:
                     if i % 2 == 1:  # alternate row shading
                         row_idx = len(rows) - 1
                         styles.append(
-                            ("BACKGROUND", (0, row_idx), (-1, row_idx),
-                             colors.whitesmoke)
+                            (
+                                "BACKGROUND",
+                                (0, row_idx),
+                                (-1, row_idx),
+                                colors.whitesmoke,
+                            )
                         )
 
             # Add any other keys that aren't title or data
-            other_keys = {
-                k: v for k, v in data.items()
-                if k not in ["title", "data"]
-            }
+            other_keys = {k: v for k, v in data.items() if k not in ["title", "data"]}
             for i, (k, v) in enumerate(other_keys.items(), start=len(rows)):
                 rows.append([k, v])
                 if i % 2 == 1:  # alternate row shading
                     row_idx = len(rows) - 1
                     styles.append(
-                        ("BACKGROUND", (0, row_idx), (-1, row_idx),
-                         colors.whitesmoke)
+                        ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.whitesmoke)
                     )
 
             return Table(rows, style=TableStyle(styles))
@@ -73,8 +82,11 @@ def _build_table(data: Dict[str, object]) -> Table:
     # Standard processing for all other cases
     for idx, (k, v) in enumerate(data.items(), start=1):
         # Convert non-primitive values to better string representation
-        if (isinstance(v, list) and len(v) > 0
-                and all(isinstance(item, dict) for item in v)):
+        if (
+            isinstance(v, list)
+            and len(v) > 0
+            and all(isinstance(item, dict) for item in v)
+        ):
             # If it's a list of dictionaries, try to format it better
             formatted_items = []
             for item in v:
@@ -91,9 +103,7 @@ def _build_table(data: Dict[str, object]) -> Table:
 
         # Alternate row shading for readability
         if idx % 2 == 1:  # alternate row shading (skip header row)
-            styles.append(
-                ("BACKGROUND", (0, idx), (-1, idx), colors.whitesmoke)
-            )
+            styles.append(("BACKGROUND", (0, idx), (-1, idx), colors.whitesmoke))
 
     # Ensure we have at least one data row
     if len(rows) == 1:
@@ -157,9 +167,7 @@ def create_pdf(
         story.append(Spacer(1, 12))  # more air below logo
 
     story.append(Paragraph("Data Assistant Report", styles["Title"]))
-    timestamp_text = (
-        f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
-    )
+    timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
     story.append(Paragraph(timestamp_text, styles["Normal"]))
     story.append(Spacer(1, 12))
     story.append(_build_table(data))
@@ -167,10 +175,7 @@ def create_pdf(
     # optional bar chart
     tmp_png = None
     if include_chart:
-        numeric_items = {
-            k: v for k, v in data.items()
-            if isinstance(v, (int, float))
-        }
+        numeric_items = {k: v for k, v in data.items() if isinstance(v, (int, float))}
         if len(numeric_items) >= 3:
             labels, values = zip(*numeric_items.items())
             fig, ax = _plt.subplots(figsize=(6, 3.5))
