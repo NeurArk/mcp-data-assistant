@@ -38,11 +38,14 @@ docker run -p 7860:7860 neurark/mcp-data-assistant
 # open http://localhost:7860
 ```
 
-▶ **Demo** — open [`sample_docs/report-demo.pdf`](sample_docs/report-demo.pdf)
+▶ **Demo** — open [`sample_docs/report-demo-new.pdf`](sample_docs/report-demo-new.pdf)
 
 ### Advanced PDF reports
-The PDF tool now supports a cover page with optional logo and summary box as
-well as styled charts. A minimal example:
+The PDF tool now supports additional fields:
+* `cover` – adds a logo to the first page
+* `summary` – short text displayed under the title
+* `chart_spec` – customize chart color and size
+A minimal example:
 
 ```json
 {
@@ -60,6 +63,7 @@ well as styled charts. A minimal example:
 }
 ```
 Run `create_pdf` with this JSON to produce a multi-page report with a styled chart.
+The data used for this demo is available at [`sample_docs/report-demo.json`](sample_docs/report-demo.json).
 
 ## How it works
 The app launches Gradio with `mcp_server=True`.  
