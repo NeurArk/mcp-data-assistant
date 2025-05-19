@@ -1,0 +1,14 @@
+{
+  "title": "Demo Sales Report",
+  "summary": "Results for Q1-Q2 2024",
+  "cover": {"logo_path": "assets/logo.png"},
+  "insights": ["Sales up 15% year over year"],
+  "sections": [
+    {"title": "Intro", "type": "paragraph", "text": "This report shows the new layout."},
+    {
+      "title": "Revenue",
+      "type": "chart",
+      "chart_spec": {"chart_type": "bar", "labels": ["Q1", "Q2"], "values": [10, 15], "color": "#ff8800"}
+    }
+  ]
+}
