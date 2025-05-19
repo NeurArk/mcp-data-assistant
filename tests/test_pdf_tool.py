@@ -332,3 +332,65 @@ def test_pdf_with_sections_and_charts(tmp_path):
     pdf_path = Path(create_pdf(data, out_path=tmp_path / "complex.pdf"))
     assert pdf_path.exists()
     assert _count_images(pdf_path) >= 4
+
+
+def test_cover_summary_box_structure(tmp_path):
+    """Ensure summary text is placed inside a table on the cover page."""
+    from tools.pdf_tool import PdfReportBuilder
+    from reportlab.platypus import Table
+
+    with PdfReportBuilder(tmp_path / "summary_box.pdf") as builder:
+        builder.add_cover("Demo", summary="Important")
+        assert any(isinstance(item, Table) for item in builder.story)
+        pdf_path = builder.save()
+
+    pdf_file = Path(pdf_path)
+    assert pdf_file.exists()
+    from PyPDF2 import PdfReader
+
+    reader = PdfReader(str(pdf_file))
+    assert "Important" in reader.pages[0].extract_text()
+
+
+def test_builder_multiple_charts(tmp_path):
+    """Verify that multiple charts render correctly using PdfReportBuilder."""
+    from tools.pdf_tool import PdfReportBuilder
+
+    specs = [
+        {"chart_type": "bar", "labels": ["A", "B"], "values": [1, 2]},
+        {"chart_type": "line", "labels": [1, 2], "values": [3, 4]},
+    ]
+    with PdfReportBuilder(tmp_path / "builder_multi.pdf") as builder:
+        builder.add_cover("Charts")
+        builder.add_section({"title": "Charts", "type": "chart", "chart_spec": specs})
+        temp_images = list(builder.tmp_pngs)
+        assert len(temp_images) == 2
+        for img in temp_images:
+            assert Path(img).exists()
+        pdf_path = builder.save()
+        assert Path(pdf_path).exists()
+        # temp images should be removed after save
+        for img in temp_images:
+            assert not Path(img).exists()
+
+    assert _count_images(Path(pdf_path)) >= 2
+
+
+def test_tmp_images_cleanup_on_exit(tmp_path):
+    """Temporary chart images are deleted after closing the builder."""
+    from tools.pdf_tool import PdfReportBuilder
+
+    with PdfReportBuilder(tmp_path / "cleanup.pdf") as builder:
+        builder.add_cover("Cleanup")
+        builder.add_section(
+            {
+                "title": "Chart",
+                "type": "chart",
+                "chart_spec": {"chart_type": "bar", "labels": ["A"], "values": [1]},
+            }
+        )
+        temp_images = list(builder.tmp_pngs)
+        assert temp_images and all(Path(p).exists() for p in temp_images)
+    # Context manager exit should remove files
+    for p in temp_images:
+        assert not Path(p).exists()
