@@ -1,85 +1,92 @@
-# AGENTS.md – Guidelines for the MCP Data Assistant Agent
+# AGENTS.md – Guidelines for the MCP Data Assistant Project
 
-> **Read this entire file before performing any action.** Failing to follow these rules may invalidate the task.
-
----
-
-## 1. Environment initialization
-
-Dependencies are automatically installed via the agent interface during the configuration phase.
-The wheelhouse directory contains all required packages for offline installation.
-
-* Required environment variables:
-  - `PYTHONPATH`: Set to `.`
-  - `PROJECT_ROOT`: Set to `/workspace/mcp-data-assistant`
-  
-* Optional secrets:
-  - `OPENAI_API_KEY`: Required only if using OpenAI models (not needed for Ollama)
+> **Read this entire file before performing any action.** This guide helps you navigate the codebase, run tests, and adhere to project standards.
 
 ---
 
-## 2. Quality gates (run in this order)
+## 1. Codebase Navigation
 
+This project implements Model Context Protocol (MCP) tools for data analysis. Key areas:
+
+| Directory  | Purpose                                               | Key Files                     |
+| ---------- | ----------------------------------------------------- | ----------------------------- |
+| `agent/`   | LLM assistant logic and session management            | `assistant.py`, `session_manager.py` |
+| `tools/`   | Core MCP tools (SQL, CSV, PDF)                        | `sql_tool.py`, `csv_tool.py`, `pdf_tool.py` |
+| `tests/`   | Unit and integration tests                            | Test files mirror source structure |
+| `static/`  | Static assets including MCP schema                    | `schema.json` (MCP tool definitions) |
+| `data/`    | Sample datasets for testing                           | `sales.db`, `people.csv` |
+| `reports/` | Generated PDF reports output directory                | Empty initially, populated during runtime |
+
+Key entry points:
+- `app.py`: Main Gradio application
+- `scripts/demo_cli.py`: Command-line interface
+
+---
+
+## 2. Development Environment Setup
+
+### Environment Variables
 ```bash
-pytest -q --cov=tools --cov=agent --cov-report=term-missing --cov-fail-under=85  # tests and coverage ≥ 85%
-ruff check .                                                                      # code formatting and linting
-ruff format --check .                                                             # code formatting check
-mypy tools/ agent/ tests/ --python-version 3.12                                   # strict typing
-bandit -r tools/ agent/ -ll -x /tests/                                            # security scan
+export PYTHONPATH="."
+export PROJECT_ROOT=$(pwd)
 ```
 
-All commands must return exit code 0. Fix any failing gate **before committing**.
+### Dependencies
+All required packages are in `requirements.txt`. The `wheelhouse/` directory contains pre-downloaded packages for offline installation:
+
+```bash
+pip install -r requirements.txt --find-links wheelhouse/
+```
+
+### Optional Secrets
+- `OPENAI_API_KEY`: Required only if using OpenAI models (not needed for Ollama)
 
 ---
 
-## 3. GitHub workflow compatibility
+## 3. Testing and Quality Assurance
 
-This project follows GitHub Actions CI/CD standards:
+Run these commands for testing and code quality:
 
-* All PRs must pass automated checks
-* CI pipeline runs the quality gates listed above
-* Commits must follow conventional commit format
-* Branch protection requires PR reviews before merging to `main`
+```bash
+# Run tests
+pytest -v
 
----
+# Code formatting and linting
+ruff check .
 
-## 4. Project structure
+# Code formatting check
+ruff format --check .
 
-| Directory  | Purpose                                               |
-| ---------- | ----------------------------------------------------- |
-| `agent/`   | LLM assistant logic and session management            |
-| `tools/`   | Core MCP tools (SQL, CSV, PDF)                        |
-| `tests/`   | Unit and integration tests                            |
-| `static/`  | Static assets including MCP schema                    |
-| `data/`    | Sample datasets for testing                           |
-| `reports/` | Generated PDF reports                                 |
+# Type checking (Python 3.12)
+mypy tools/ agent/ tests/ --python-version 3.12
 
----
+# Security scan (exclude tests)
+bandit -r tools/ agent/ -ll -x /tests/
+```
 
-## 5. Coding standards
-
-| Topic      | Mandatory rules                                                                      |
-| ---------- | ------------------------------------------------------------------------------------- |
-| Format     | Use **ruff format** (line length 120) and **ruff check**.                            |
-| Typing     | Provide complete hints. `mypy --strict` must succeed without unjustified ignores.     |
-| Tests      | Every bug fix or feature requires unit tests. Minimum 85% coverage required.         |
-| Logs       | Use the `logging` module, never `print`.                                             |
-| Security   | Avoid `eval`, plain secrets and unclean temp files. Follow OWASP guidelines.         |
-| Imports    | Use absolute imports for project modules.                                            |
-| Docstrings | Google style docstrings for all public functions/classes.                            |
+### Testing Best Practices
+- Write tests first (TDD approach encouraged)
+- Use pytest fixtures for common setup
+- Mock external services (OpenAI, Ollama)
+- Test both success and failure paths
+- Use parameterized tests for multiple scenarios
+- Ensure tests are deterministic
 
 ---
 
-## 6. MCP-specific guidelines
+## 4. Standard Development Workflow
 
-* Maintain MCP schema in `static/schema.json` for all tool changes
-* Follow Model Context Protocol standards for tool implementation
-* Ensure tools are stateless and idempotent
-* Implement proper error handling with meaningful MCP error responses
+1. **Analyze** the issue or requirement
+2. **Plan** your approach (files to modify, tests to write)
+3. **Check** existing code patterns and tests
+4. **Implement** in small, testable units
+5. **Run** all tests and quality checks
+6. **Commit** following the convention below
+7. **Push** and ensure CI passes
 
 ---
 
-## 7. Commit convention
+## 5. Commit Convention
 
 ```
 <type>(<scope>): <short summary>
@@ -89,41 +96,21 @@ This project follows GitHub Actions CI/CD standards:
 BREAKING CHANGE: <explanation>
 ```
 
-*Allowed types*: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `chore`, `ci`.
-*Scope* should point to a module (e.g. `agent`, `tools`, `sql`, `csv`, `pdf`).
-Make commits atomic: one change, one green test.
+Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `chore`, `ci`
+Scope: module name (e.g., `agent`, `tools`, `sql`, `csv`, `pdf`)
+
+Example:
+```
+feat(sql): add support for PostgreSQL connections
+
+- Implement PostgreSQL connection handler
+- Add tests for connection types
+- Update schema.json with new parameters
+```
 
 ---
 
-## 8. Pull request rules
-
-1. Create a branch named `feat/<issue-id>-slug` or `fix/<issue-id>-slug`.
-2. Open a PR to `main` and include:
-   * **What**: short summary
-   * **Why**: business need or bug
-   * **How**: technical approach (include diagrams if useful)
-   * **Test Plan**: commands and test cases covered
-   * **MCP Impact**: schema changes or tool behavior changes
-3. Ensure all quality gates pass **before** requesting review.
-4. Update `CHANGELOG.md` when needed; add a new `## [Unreleased]` section.
-5. Link the PR to the related issue.
-
----
-
-## 9. Standard workflow
-
-1. **Analyze** the issue or description.
-2. **Plan** your work (files, steps) and post the plan as a comment in the issue.
-3. **Check** existing tests for context and patterns.
-4. **Implement** in small units (functions < 30 lines).
-5. Run all quality gates locally (section 2).
-6. Commit following the convention (section 7).
-7. Push the branch, open the PR and ensure CI is green.
-8. Request review once all checks pass.
-
----
-
-## 10. Tool development checklist
+## 6. Tool Development Guidelines
 
 When developing MCP tools:
 
@@ -131,13 +118,18 @@ When developing MCP tools:
 - [ ] Implements required MCP protocol methods
 - [ ] Returns properly formatted JSON responses
 - [ ] Handles edge cases gracefully
-- [ ] Includes comprehensive test coverage
-- [ ] Updates schema.json if adding new tool
-- [ ] Add tool documentation to README.md
+- [ ] Includes comprehensive tests
+- [ ] Updates `static/schema.json` if adding new tool
+- [ ] Adds tool documentation to README.md
+
+MCP tools must be:
+- Stateless and idempotent
+- Properly error-handled with meaningful error responses
+- Well-documented with examples
 
 ---
 
-## 11. Assistant development
+## 7. Assistant Module Guidelines
 
 When working on the Assistant module:
 
@@ -150,39 +142,48 @@ When working on the Assistant module:
 
 ---
 
-## 12. Quick troubleshooting
+## 8. Quick Troubleshooting
 
-| Failure                      | Immediate action                                           |
-| --------------------------- | ---------------------------------------------------------- |
-| ImportError                 | Check if package is in requirements.txt and wheelhouse/    |
-| Coverage < 85%              | Add missing tests or justify the drop in the PR.           |
-| mypy errors                 | Add type hints or refactor the code.                       |
-| Tool execution fails        | Check schema.json alignment with implementation.           |
-| Assistant connection errors | Verify OPENAI_API_KEY or Ollama service status.            |
-| CI pipeline fails           | Check GitHub Actions logs and fix locally first.           |
-
----
-
-## 13. Testing guidelines
-
-* Write tests first (TDD approach encouraged)
-* Use pytest fixtures for common setup
-* Mock external services (OpenAI, Ollama)
-* Test both success and failure paths
-* Use parameterized tests for multiple scenarios
-* Ensure tests are deterministic
+| Issue                       | Solution                                           |
+| --------------------------- | -------------------------------------------------- |
+| ImportError                 | Check requirements.txt and wheelhouse/ directory   |
+| mypy errors                 | Add type hints or refactor the code               |
+| Tool execution fails        | Check schema.json alignment with implementation   |
+| Assistant connection errors | Verify OPENAI_API_KEY or Ollama service status    |
+| CI pipeline fails           | Check GitHub Actions logs and fix locally first   |
 
 ---
 
-## 14. Environment considerations
+## 9. Important Technical Details
 
-* The project supports Python 3.12+
-* SQLite and PostgreSQL database support
-* Gradio 5.29+ for UI
-* ReportLab for PDF generation
-* Ollama integration for local models
-* All dependencies pre-downloaded in wheelhouse/
+### Database Support
+- SQLite (default) and PostgreSQL support
+- Connection strings handled via SQL tool
+
+### UI Framework
+- Gradio 5.29+ for web interface
+- Session-based state management
+
+### PDF Generation
+- ReportLab for PDF creation
+- Matplotlib for charts/visualizations
+
+### Model Support
+- OpenAI API integration
+- Ollama for local models
+- Dynamic model switching
 
 ---
 
-**Remember:** *Clean, tested, documented code; no shortcuts. MCP tools must be reliable and stateless. Always ensure GitHub workflow compliance.*
+## 10. CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration:
+
+- All PRs must pass automated checks
+- Quality gates run automatically
+- Branch protection requires PR reviews
+- Commits must follow conventional format
+
+---
+
+**Remember:** Write clean, tested, documented code. MCP tools must be reliable and stateless. Prioritize code readability and maintainability.
