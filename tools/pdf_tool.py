@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime as _dt
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 import tempfile
 import os
 
@@ -112,6 +112,49 @@ def _build_table(data: Dict[str, object]) -> Table:
     return Table(rows, style=TableStyle(styles))
 
 
+def _build_table_from_list(data: List[Any]) -> Table:
+    """Create a table from a list of dicts or rows."""
+    if not data:
+        return Table([["No data"]])
+
+    if all(isinstance(row, dict) for row in data):
+        headers = sorted({k for row in data for k in row.keys()})
+        rows = [headers]
+        for row in data:
+            rows.append([row.get(h, "") for h in headers])
+    else:
+        rows = data
+
+    styles = [
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+    ]
+    return Table(rows, style=TableStyle(styles))
+
+
+def create_chart(chart_spec: Dict[str, Any]) -> str:
+    """Generate a chart image from a specification and return PNG path."""
+    chart_type = chart_spec.get("chart_type", "bar")
+    labels = chart_spec.get("labels", [])
+    values = chart_spec.get("values", [])
+    fig, ax = _plt.subplots(figsize=(6, 3.5))
+
+    if chart_type == "bar":
+        ax.bar(labels, values, color="#143d8d")
+    elif chart_type == "pie":
+        ax.pie(values, labels=labels, autopct="%1.1f%%")
+    elif chart_type == "line":
+        ax.plot(labels, values, marker="o", color="#143d8d")
+    else:
+        raise ValueError(f"Unsupported chart type: {chart_type}")
+
+    fig.tight_layout()
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    fig.savefig(tmp.name, bbox_inches="tight")
+    _plt.close(fig)
+    return tmp.name
+
+
 def create_pdf(
     data: Dict[str, object],
     out_path: str | None = None,
@@ -152,55 +195,101 @@ def create_pdf(
     styles = getSampleStyleSheet()
     story: List[object] = []
 
-    # logo (if file exists)
     logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
-    if logo_path.exists():
-        story.append(
-            Image(
-                str(logo_path),
-                width=80,
-                height=80,
-                kind="proportional",
-                hAlign="CENTER",
+
+    # Determine if new schema is used
+    has_sections = isinstance(data, dict) and "sections" in data
+
+    tmp_pngs: List[str] = []
+
+    if has_sections:
+        if logo_path.exists():
+            story.append(
+                Image(
+                    str(logo_path),
+                    width=80,
+                    height=80,
+                    kind="proportional",
+                    hAlign="CENTER",
+                )
             )
-        )
-        story.append(Spacer(1, 12))  # more air below logo
+            story.append(Spacer(1, 12))
 
-    story.append(Paragraph("Data Assistant Report", styles["Title"]))
-    timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
-    story.append(Paragraph(timestamp_text, styles["Normal"]))
-    story.append(Spacer(1, 12))
-    story.append(_build_table(data))
+        story.append(Paragraph(data.get("title", "Data Assistant Report"), styles["Title"]))
+        timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
+        story.append(Paragraph(timestamp_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
 
-    # optional bar chart
-    tmp_png = None
-    if include_chart:
-        numeric_items = {k: v for k, v in data.items() if isinstance(v, (int, float))}
-        if len(numeric_items) >= 3:
-            labels, values = zip(*numeric_items.items())
-            fig, ax = _plt.subplots(figsize=(6, 3.5))
+        for ins in data.get("insights", []):
+            story.append(Paragraph(ins, styles["Normal"]))
+            story.append(Spacer(1, 6))
 
-            # filter zero values
-            filtered = [(k, v) for k, v in numeric_items.items() if v]
-            labels, values = zip(*filtered) if filtered else (labels, values)
+        for i, section in enumerate(data.get("sections", []), start=1):
+            story.append(Spacer(1, 12))
+            story.append(Paragraph(section.get("title", f"Section {i}"), styles["Heading2"]))
+            stype = section.get("type")
+            if stype == "paragraph":
+                story.append(Paragraph(section.get("text", ""), styles["Normal"]))
+            elif stype == "table":
+                table_data = section.get("data", {})
+                if isinstance(table_data, dict):
+                    table = _build_table(table_data)
+                else:
+                    table = _build_table_from_list(table_data)
+                story.append(table)
+            elif stype == "chart":
+                chart_spec = section.get("chart_spec", {})
+                png = create_chart(chart_spec)
+                story.append(Image(png, width=400, height=250))
+                tmp_pngs.append(png)
+            else:
+                story.append(Paragraph("Unsupported section type", styles["Italic"]))
 
-            ax.bar(range(len(labels)), values, color="#143d8d")  # NeurArk blue
-            ax.set_ylabel("Value (€)")
-            ax.set_xticks(range(len(labels)))
-            ax.set_xticklabels(labels, rotation=45, ha="right")
-            fig.tight_layout()
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            fig.savefig(tmp.name, bbox_inches="tight")
-            _plt.close(fig)
-            story.append(Spacer(1, 24))
-            story.append(Image(tmp.name, width=400, height=250))
-            tmp_png = tmp.name
+        doc.build(story)
+    else:
+        # Fallback to legacy behaviour for plain dicts
+        if logo_path.exists():
+            story.append(
+                Image(
+                    str(logo_path),
+                    width=80,
+                    height=80,
+                    kind="proportional",
+                    hAlign="CENTER",
+                )
+            )
+            story.append(Spacer(1, 12))
 
-    doc.build(story)
+        story.append(Paragraph("Data Assistant Report", styles["Title"]))
+        timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
+        story.append(Paragraph(timestamp_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+        story.append(_build_table(data))
 
-    # clean temporary PNG
-    if tmp_png and os.path.exists(tmp_png):
-        os.unlink(tmp_png)
+        if include_chart:
+            numeric_items = {k: v for k, v in data.items() if isinstance(v, (int, float))}
+            if len(numeric_items) >= 3:
+                labels, values = zip(*numeric_items.items())
+                fig, ax = _plt.subplots(figsize=(6, 3.5))
+                filtered = [(k, v) for k, v in numeric_items.items() if v]
+                labels, values = zip(*filtered) if filtered else (labels, values)
+                ax.bar(range(len(labels)), values, color="#143d8d")
+                ax.set_ylabel("Value (€)")
+                ax.set_xticks(range(len(labels)))
+                ax.set_xticklabels(labels, rotation=45, ha="right")
+                fig.tight_layout()
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                fig.savefig(tmp.name, bbox_inches="tight")
+                _plt.close(fig)
+                story.append(Spacer(1, 24))
+                story.append(Image(tmp.name, width=400, height=250))
+                tmp_pngs.append(tmp.name)
+
+        doc.build(story)
+
+    for png in tmp_pngs:
+        if os.path.exists(png):
+            os.unlink(png)
     return str(out_path.resolve())
 
 

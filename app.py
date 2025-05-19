@@ -4,13 +4,18 @@ import json
 import os
 import uuid
 import shutil
+from pathlib import Path
+from jsonschema import validate, ValidationError
 from tools.sql_tool import run_sql
 from tools.csv_tool import summarise_csv
 from tools.pdf_tool import create_pdf
 from tools.default_paths import DATA_DIR, UPLOADS_DIR
-
-# assistant
 from agent import answer, _check_ollama_available, session_manager
+
+# Load PDF schema for validation
+PDF_SCHEMA_PATH = Path("static/pdf_schema.json")
+with open(PDF_SCHEMA_PATH, "r", encoding="utf-8") as _f:
+    PDF_SCHEMA = json.load(_f)
 
 
 def server_status() -> str:
@@ -163,13 +168,16 @@ with gr.Blocks() as tools_demo:
                     ),
                 }
         else:
-            # Use the data directly
             data = data_json
 
         try:
             # Handle basic data type conversion
             if isinstance(data, dict):
-                # Dictionary - use as is
+                if "sections" in data:
+                    try:
+                        validate(instance=data, schema=PDF_SCHEMA)
+                    except ValidationError as ve:
+                        data = {"error": "Invalid PDF schema", "details": ve.message}
                 pass
             elif isinstance(data, list):
                 # Convert list to simple dictionary with indexed keys
@@ -337,7 +345,7 @@ with gr.Blocks() as assistant_chat:
             
         # Log if we have a previous result object
         if prev_result:
-            print(f"Using previous result object for conversation continuity")
+            print("Using previous result object for conversation continuity")
         else:
             print("No previous result object available")
             

@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PDF Report Schema",
+  "type": "object",
+  "description": "Structure for creating rich PDF reports with cover page, insights and various section types.",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Main report title"
+    },
+    "cover": {
+      "type": "object",
+      "description": "Optional cover page settings",
+      "properties": {
+        "logo_path": {
+          "type": "string",
+          "description": "Path to a logo image"
+        }
+      },
+      "additionalProperties": false
+    },
+    "insights": {
+      "type": "array",
+      "description": "List of insight paragraphs to highlight on the first page",
+      "items": {"type": "string"}
+    },
+    "sections": {
+      "type": "array",
+      "description": "Report sections such as paragraphs, tables or charts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "type": {"type": "string", "enum": ["paragraph", "table", "chart"]},
+          "text": {"type": "string"},
+          "data": {"type": ["array", "object"]},
+          "chart_spec": {
+            "type": "object",
+            "properties": {
+              "chart_type": {"type": "string", "enum": ["bar", "pie", "line"]},
+              "labels": {"type": "array", "items": {"type": "string"}},
+              "values": {"type": "array", "items": {"type": "number"}}
+            },
+            "required": ["chart_type", "labels", "values"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["title", "type"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["title", "sections"],
+  "additionalProperties": false
+}

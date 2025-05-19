@@ -47,9 +47,10 @@ BASE_INSTRUCTIONS = (
     "When generating PDF reports:\n"
     "- IMPORTANT: When asked to create a PDF report, create it immediately with the information provided\n"
     "- Generate reports even with minimal information - do not ask for clarification\n"
-    "- The 'data_json' parameter should be a JSON string with data to include\n"
+    "- Build dictionary per pdf_schema.json with title, optional insights and list of sections.\n"
+    "  Each section has type 'paragraph', 'table', or 'chart'; charts require 'chart_type' (bar, pie, line) and data.\n"
+    "- Pass this dictionary as a JSON string via the 'data_json' parameter\n"
     "- Always include the generated PDF file path in your response\n"
-    '- Example format: {"title": "Report Title", "data": "Your Data"}\n'
     '- To call the PDF tool, use: {"name": "pdf", "arguments": {"data_json": "JSON string here"}}\n\n'
     "When working with CSV files:\n"
     "- If a user has uploaded a CSV file, it will be available in the uploads directory\n"
