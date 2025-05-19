@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import datetime as _dt
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, cast
 import tempfile
-import os
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -35,9 +34,9 @@ class PdfReportBuilder:
     def __init__(self, out_path: str | Path):
         self.out_path = Path(out_path)
         self.story: List[Flowable] = []
-        self.tmp_pngs: List[str] = []
         self.styles = getSampleStyleSheet()
         self.doc = SimpleDocTemplate(str(self.out_path), pagesize=A4)
+        self.tmp_dir = tempfile.TemporaryDirectory()
 
     def add_cover(
         self,
@@ -93,11 +92,10 @@ class PdfReportBuilder:
             spec = section.get("chart_spec", {})
             specs = spec if isinstance(spec, list) else [spec]
             for cs in specs:
-                png = create_chart(cs)
+                png = create_chart(cs, self.tmp_dir.name)
                 width = cs.get("width", 400)
                 height = cs.get("height", 250)
                 self.story.append(Image(png, width=width, height=height))
-                self.tmp_pngs.append(png)
         else:
             self.story.append(
                 Paragraph("Unsupported section type", self.styles["Italic"])
@@ -107,18 +105,14 @@ class PdfReportBuilder:
     def save(self) -> str:
         """Finalize the PDF and clean up temporary files."""
         self.doc.build(self.story)
-        for png in self.tmp_pngs:
-            if os.path.exists(png):
-                os.unlink(png)
+        self.tmp_dir.cleanup()
         return str(self.out_path.resolve())
 
     def __enter__(self) -> "PdfReportBuilder":
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
-        for png in self.tmp_pngs:
-            if os.path.exists(png):
-                os.unlink(png)
+        self.tmp_dir.cleanup()
 
 
 def _build_table(data: Dict[str, object]) -> Table:
@@ -226,7 +220,7 @@ def _build_table_from_list(data: List[Any]) -> Table:
     return Table(rows, style=TableStyle(styles))
 
 
-def create_chart(chart_spec: Dict[str, Any]) -> str:
+def create_chart(chart_spec: Dict[str, Any], tmp_dir: str | None = None) -> str:
     """Generate a chart image from a specification and return PNG path."""
     chart_type = chart_spec.get("chart_type", "bar")
     labels = chart_spec.get("labels", [])
@@ -246,7 +240,7 @@ def create_chart(chart_spec: Dict[str, Any]) -> str:
         raise ValueError(f"Unsupported chart type: {chart_type}")
 
     fig.tight_layout()
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png", dir=tmp_dir)
     fig.savefig(tmp.name, bbox_inches="tight")
     _plt.close(fig)
     return tmp.name
@@ -283,48 +277,55 @@ def create_pdf(
 
     timestamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     if out_path is None:
-        out_path = REPORT_DIR / f"report-{timestamp}.pdf"
+        target = REPORT_DIR / f"report-{timestamp}.pdf"
     else:
-        out_path = Path(out_path)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+        target = Path(out_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
 
     logo_default = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
 
-    builder = PdfReportBuilder(out_path)
+    with PdfReportBuilder(target) as builder:
+        has_sections = isinstance(data, dict) and "sections" in data
 
-    has_sections = isinstance(data, dict) and "sections" in data
+        if has_sections:
+            cover: Dict[str, Any] = cast(Dict[str, Any], data.get("cover", {}))
+            builder.add_cover(
+                cast(str, data.get("title", "Data Assistant Report")),
+                cast(
+                    str | None,
+                    cover.get(
+                        "logo_path",
+                        str(logo_default) if logo_default.exists() else None,
+                    ),
+                ),
+                cast(str | None, data.get("summary")),
+            )
+            for ins in cast(List[str], data.get("insights", [])):
+                builder.add_section({"title": "", "type": "paragraph", "text": ins})
+            for section in cast(List[Dict[str, Any]], data.get("sections", [])):
+                builder.add_section(section)
+        else:
+            builder.add_cover(
+                "Data Assistant Report",
+                str(logo_default) if logo_default.exists() else None,
+            )
+            builder.add_section({"title": "Data", "type": "table", "data": data})
+            if include_chart:
+                numeric_items = {
+                    k: v for k, v in data.items() if isinstance(v, (int, float))
+                }
+                if len(numeric_items) >= 3:
+                    labels, values = zip(*numeric_items.items())
+                    chart_spec = {
+                        "chart_type": "bar",
+                        "labels": labels,
+                        "values": values,
+                    }
+                    builder.add_section(
+                        {"title": "Chart", "type": "chart", "chart_spec": chart_spec}
+                    )
 
-    if has_sections:
-        cover = data.get("cover", {})
-        builder.add_cover(
-            data.get("title", "Data Assistant Report"),
-            cover.get(
-                "logo_path", str(logo_default) if logo_default.exists() else None
-            ),
-            data.get("summary"),
-        )
-        for ins in data.get("insights", []):
-            builder.add_section({"title": "", "type": "paragraph", "text": ins})
-        for section in data.get("sections", []):
-            builder.add_section(section)
-    else:
-        builder.add_cover(
-            "Data Assistant Report",
-            str(logo_default) if logo_default.exists() else None,
-        )
-        builder.add_section({"title": "Data", "type": "table", "data": data})
-        if include_chart:
-            numeric_items = {
-                k: v for k, v in data.items() if isinstance(v, (int, float))
-            }
-            if len(numeric_items) >= 3:
-                labels, values = zip(*numeric_items.items())
-                chart_spec = {"chart_type": "bar", "labels": labels, "values": values}
-                builder.add_section(
-                    {"title": "Chart", "type": "chart", "chart_spec": chart_spec}
-                )
-
-    return builder.save()
+        return builder.save()
 
 
 if __name__ == "__main__":
