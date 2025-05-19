@@ -2,12 +2,15 @@ from pathlib import Path
 import json
 import pytest
 import traceback
-from tools.pdf_tool import create_pdf, _build_table
+from tools.pdf_tool import PdfReportBuilder, create_pdf, _build_table
 
 
 def test_pdf_creation_size(tmp_path):
     sample = {"foo": "bar", "grand_total": 999}
-    file_path = create_pdf(sample, out_path=tmp_path / "test.pdf")
+    with PdfReportBuilder(tmp_path / "test.pdf") as builder:
+        builder.add_cover("Report")
+        builder.add_section({"title": "Data", "type": "table", "data": sample})
+        file_path = builder.save()
     assert Path(file_path).exists()
     assert Path(file_path).stat().st_size > 1000
 
@@ -41,7 +44,10 @@ def test_pdf_with_different_data_types(tmp_path):
             "none_value": None,
             "grand_total": 999,
         }
-        file_path = create_pdf(sample, out_path=tmp_path / "datatypes.pdf")
+        with PdfReportBuilder(tmp_path / "datatypes.pdf") as builder:
+            builder.add_cover("Types")
+            builder.add_section({"title": "Data", "type": "table", "data": sample})
+            file_path = builder.save()
         assert Path(file_path).exists()
     except Exception as e:
         print(f"PDF creation with mixed data types failed: {str(e)}")
@@ -65,7 +71,10 @@ def test_pdf_from_json_string(tmp_path):
         """
         # Parse JSON to dict
         data = json.loads(json_str)
-        file_path = create_pdf(data, out_path=tmp_path / "from_json.pdf")
+        with PdfReportBuilder(tmp_path / "from_json.pdf") as builder:
+            builder.add_cover(data.get("title", "Report"))
+            builder.add_section({"title": "Data", "type": "table", "data": data})
+            file_path = builder.save()
         assert Path(file_path).exists()
     except Exception as e:
         print(f"PDF creation from JSON string failed: {str(e)}")
@@ -94,7 +103,10 @@ def test_pdf_with_sql_like_data(tmp_path):
             data[f"sales_{i}"] = item["sales"]
         # Add grand total
         data["grand_total"] = data["total_sales"]
-        file_path = create_pdf(data, out_path=tmp_path / "sql_results.pdf")
+        with PdfReportBuilder(tmp_path / "sql_results.pdf") as builder:
+            builder.add_cover(data["title"])
+            builder.add_section({"title": "Data", "type": "table", "data": data})
+            file_path = builder.save()
         assert Path(file_path).exists()
     except Exception as e:
         print(f"SQL results PDF creation failed: {str(e)}")
@@ -105,9 +117,10 @@ def test_pdf_with_sql_like_data(tmp_path):
 def test_pdf_without_chart(tmp_path):
     """Test PDF creation with chart disabled."""
     sample = {"customer": "No Chart Test", "value": 500, "grand_total": 500}
-    file_path = create_pdf(
-        sample, out_path=tmp_path / "no_chart.pdf", include_chart=False
-    )
+    with PdfReportBuilder(tmp_path / "no_chart.pdf") as builder:
+        builder.add_cover("No Chart Test")
+        builder.add_section({"title": "Data", "type": "table", "data": sample})
+        file_path = builder.save()
     assert Path(file_path).exists()
 
 
@@ -125,7 +138,10 @@ def test_pdf_with_edge_cases(tmp_path):
         "value_3": 300,
         "grand_total": 600,
     }
-    file_path = create_pdf(data, out_path=tmp_path / "edge_case.pdf")
+    with PdfReportBuilder(tmp_path / "edge_case.pdf") as builder:
+        builder.add_cover(data["title"])
+        builder.add_section({"title": "Data", "type": "table", "data": data})
+        file_path = builder.save()
     assert Path(file_path).exists()
 
 
@@ -229,7 +245,10 @@ def test_empty_value_handling(tmp_path):
         "zero_value": 0,
         "grand_total": 1000,
     }
-    output_path = create_pdf(data, out_path=tmp_path / "empty_values.pdf")
+    with PdfReportBuilder(tmp_path / "empty_values.pdf") as builder:
+        builder.add_cover(data["title"])
+        builder.add_section({"title": "Data", "type": "table", "data": data})
+        output_path = builder.save()
     assert Path(output_path).exists()
 
 
@@ -245,7 +264,15 @@ def test_pdf_with_cover_and_summary(tmp_path):
         "cover": {"logo_path": "assets/logo.png"},
         "sections": [{"title": "Intro", "type": "paragraph", "text": "Hello"}],
     }
-    pdf_path = Path(create_pdf(data, out_path=tmp_path / "cover.pdf"))
+    with PdfReportBuilder(tmp_path / "cover.pdf") as builder:
+        builder.add_cover(
+            data["title"],
+            data["cover"].get("logo_path"),
+            data["summary"],
+        )
+        for sec in data["sections"]:
+            builder.add_section(sec)
+        pdf_path = Path(builder.save())
     assert pdf_path.exists()
     from PyPDF2 import PdfReader
 
@@ -273,7 +300,11 @@ def test_multiple_chart_specs(tmp_path):
             }
         ],
     }
-    pdf_path = Path(create_pdf(data, out_path=tmp_path / "multi.pdf"))
+    with PdfReportBuilder(tmp_path / "multi.pdf") as builder:
+        builder.add_cover(data["title"])
+        for sec in data["sections"]:
+            builder.add_section(sec)
+        pdf_path = Path(builder.save())
     assert pdf_path.exists()
     assert _count_images(pdf_path) >= 3
 
@@ -329,6 +360,59 @@ def test_pdf_with_sections_and_charts(tmp_path):
         ],
     }
 
-    pdf_path = Path(create_pdf(data, out_path=tmp_path / "complex.pdf"))
+    with PdfReportBuilder(tmp_path / "complex.pdf") as builder:
+        builder.add_cover(data["title"])
+        for sec in data["sections"]:
+            builder.add_section(sec)
+        pdf_path = Path(builder.save())
     assert pdf_path.exists()
     assert _count_images(pdf_path) >= 4
+
+
+def test_build_table_special_case():
+    """Cover _build_table path for structured list data."""
+    from tools.pdf_tool import _build_table
+
+    data = {
+        "title": "Items",
+        "data": [{"a": 1}, {"b": 2}],
+        "extra": "val",
+    }
+    table = _build_table(data)
+    assert table is not None
+
+
+def test_create_chart_variants(tmp_path):
+    """Ensure create_chart supports bar, pie and line charts."""
+    from tools.pdf_tool import create_chart
+
+    specs = [
+        {"chart_type": "bar", "labels": ["A"], "values": [1]},
+        {"chart_type": "pie", "labels": ["A"], "values": [1]},
+        {"chart_type": "line", "labels": [1, 2], "values": [3, 4]},
+    ]
+    for spec in specs:
+        path = create_chart(spec, tmp_path)
+        assert Path(path).exists()
+
+
+def test_create_pdf_with_sections(tmp_path):
+    """Exercise the create_pdf branch handling section dictionaries."""
+    from tools.pdf_tool import create_pdf
+
+    data = {
+        "title": "Report",
+        "summary": "S",
+        "cover": {"logo_path": None},
+        "insights": ["ok"],
+        "sections": [
+            {"title": "Data", "type": "table", "data": {"a": 1}},
+            {
+                "title": "Chart",
+                "type": "chart",
+                "chart_spec": {"chart_type": "bar", "labels": ["a"], "values": [1]},
+            },
+        ],
+    }
+    path = create_pdf(data, out_path=tmp_path / "sections.pdf")
+    assert Path(path).exists()

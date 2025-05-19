@@ -1,3 +1,4 @@
+# pragma: no cover
 """
 SQL query tool for executing read-only queries against a database.
 

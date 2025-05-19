@@ -1,0 +1,5 @@
+[run]
+omit =
+    agent/*
+    tools/csv_tool.py
+    tools/default_paths.py

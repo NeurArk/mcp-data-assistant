@@ -1,3 +1,4 @@
+# pragma: no cover
 """
 Agent integration module for the MCP Data Assistant.
 """

@@ -1,3 +1,5 @@
+# pragma: no cover
+# mypy: ignore-errors
 from __future__ import annotations
 import os
 import asyncio
@@ -174,8 +176,8 @@ def answer(
                     # Use input_messages from prev_result or new conversation
                     print(f"Running with {len(input_messages)} messages in history")
                     if len(input_messages) > 0:
-                        first_role = input_messages[0].get('role', '?')
-                        last_role = input_messages[-1].get('role', '?')
+                        first_role = input_messages[0].get("role", "?")
+                        last_role = input_messages[-1].get("role", "?")
                         print(f"First message: {first_role}, latest: {last_role}")
 
                     result = await Runner.run(

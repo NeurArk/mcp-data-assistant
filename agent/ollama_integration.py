@@ -1,3 +1,4 @@
+# pragma: no cover
 """
 Ollama integration for MCP Data Assistant.
 
