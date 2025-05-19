@@ -115,7 +115,7 @@ def test_pdf_with_edge_cases(tmp_path):
     """Test PDF creation with edge cases."""
     # Long text
     long_text = (
-        "This is a very long text that should be wrapped properly " "in the PDF table "
+        "This is a very long text that should be wrapped properly in the PDF table "
     ) * 5
     data = {
         "title": "Edge Case Test",
@@ -236,6 +236,56 @@ def test_empty_value_handling(tmp_path):
 def _count_images(pdf_path: Path) -> int:
     with open(pdf_path, "rb") as f:
         return f.read().count(b"/Subtype /Image")
+
+
+def test_pdf_with_cover_and_summary(tmp_path):
+    data = {
+        "title": "Cover Report",
+        "summary": "Quick overview",
+        "cover": {"logo_path": "assets/logo.png"},
+        "sections": [{"title": "Intro", "type": "paragraph", "text": "Hello"}],
+    }
+    pdf_path = Path(create_pdf(data, out_path=tmp_path / "cover.pdf"))
+    assert pdf_path.exists()
+    from PyPDF2 import PdfReader
+
+    reader = PdfReader(str(pdf_path))
+    assert len(reader.pages) >= 2
+    assert "Quick overview" in reader.pages[0].extract_text()
+
+
+def test_multiple_chart_specs(tmp_path):
+    data = {
+        "title": "Charts",
+        "sections": [
+            {
+                "title": "Multi",
+                "type": "chart",
+                "chart_spec": [
+                    {
+                        "chart_type": "bar",
+                        "labels": ["A", "B"],
+                        "values": [1, 2],
+                        "color": "#ff0000",
+                    },
+                    {"chart_type": "line", "labels": [1, 2], "values": [3, 4]},
+                ],
+            }
+        ],
+    }
+    pdf_path = Path(create_pdf(data, out_path=tmp_path / "multi.pdf"))
+    assert pdf_path.exists()
+    assert _count_images(pdf_path) >= 3
+
+
+def test_builder_class(tmp_path):
+    from tools.pdf_tool import PdfReportBuilder
+
+    with PdfReportBuilder(tmp_path / "builder.pdf") as builder:
+        builder.add_cover("Title")
+        builder.add_section({"title": "P", "type": "paragraph", "text": "Hi"})
+        path = builder.save()
+    assert Path(path).exists()
 
 
 def test_pdf_with_sections_and_charts(tmp_path):
