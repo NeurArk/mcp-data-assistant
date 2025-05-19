@@ -20,11 +20,105 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+    PageBreak,
+    Flowable,
 )
 import matplotlib.pyplot as _plt
 
 REPORT_DIR = Path(__file__).resolve().parent.parent / "reports"
 REPORT_DIR.mkdir(exist_ok=True)
+
+
+class PdfReportBuilder:
+    """Helper class to build multi-page PDF reports."""
+
+    def __init__(self, out_path: str | Path):
+        self.out_path = Path(out_path)
+        self.story: List[Flowable] = []
+        self.tmp_pngs: List[str] = []
+        self.styles = getSampleStyleSheet()
+        self.doc = SimpleDocTemplate(str(self.out_path), pagesize=A4)
+
+    def add_cover(
+        self,
+        title: str,
+        logo_path: str | None = None,
+        summary: str | None = None,
+    ) -> None:
+        """Insert a cover page with optional logo and summary."""
+        if logo_path and Path(logo_path).exists():
+            self.story.append(
+                Image(
+                    str(logo_path),
+                    width=80,
+                    height=80,
+                    kind="proportional",
+                    hAlign="CENTER",
+                )
+            )
+            self.story.append(Spacer(1, 12))
+        self.story.append(Paragraph(title, self.styles["Title"]))
+        timestamp_text = (
+            f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
+        )
+        self.story.append(Paragraph(timestamp_text, self.styles["Normal"]))
+        if summary:
+            box = Table(
+                [[Paragraph(summary, self.styles["Normal"])]],
+                style=TableStyle(
+                    [
+                        ("BOX", (0, 0), (-1, -1), 0.25, colors.black),
+                        ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+                    ]
+                ),
+            )
+            self.story.append(Spacer(1, 12))
+            self.story.append(box)
+        self.story.append(PageBreak())
+
+    def add_section(self, section: Dict[str, Any]) -> None:
+        """Add a paragraph, table or chart section."""
+        self.story.append(Paragraph(section.get("title", ""), self.styles["Heading2"]))
+        stype = section.get("type")
+        if stype == "paragraph":
+            self.story.append(Paragraph(section.get("text", ""), self.styles["Normal"]))
+        elif stype == "table":
+            table_data = section.get("data", {})
+            if isinstance(table_data, dict):
+                table = _build_table(table_data)
+            else:
+                table = _build_table_from_list(table_data)
+            self.story.append(table)
+        elif stype == "chart":
+            spec = section.get("chart_spec", {})
+            specs = spec if isinstance(spec, list) else [spec]
+            for cs in specs:
+                png = create_chart(cs)
+                width = cs.get("width", 400)
+                height = cs.get("height", 250)
+                self.story.append(Image(png, width=width, height=height))
+                self.tmp_pngs.append(png)
+        else:
+            self.story.append(
+                Paragraph("Unsupported section type", self.styles["Italic"])
+            )
+        self.story.append(Spacer(1, 12))
+
+    def save(self) -> str:
+        """Finalize the PDF and clean up temporary files."""
+        self.doc.build(self.story)
+        for png in self.tmp_pngs:
+            if os.path.exists(png):
+                os.unlink(png)
+        return str(self.out_path.resolve())
+
+    def __enter__(self) -> "PdfReportBuilder":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        for png in self.tmp_pngs:
+            if os.path.exists(png):
+                os.unlink(png)
 
 
 def _build_table(data: Dict[str, object]) -> Table:
@@ -137,14 +231,17 @@ def create_chart(chart_spec: Dict[str, Any]) -> str:
     chart_type = chart_spec.get("chart_type", "bar")
     labels = chart_spec.get("labels", [])
     values = chart_spec.get("values", [])
-    fig, ax = _plt.subplots(figsize=(6, 3.5))
+    color = chart_spec.get("color", "#143d8d")
+    width = float(chart_spec.get("width", 6))
+    height = float(chart_spec.get("height", 3.5))
+    fig, ax = _plt.subplots(figsize=(width, height))
 
     if chart_type == "bar":
-        ax.bar(labels, values, color="#143d8d")
+        ax.bar(labels, values, color=color)
     elif chart_type == "pie":
         ax.pie(values, labels=labels, autopct="%1.1f%%")
     elif chart_type == "line":
-        ax.plot(labels, values, marker="o", color="#143d8d")
+        ax.plot(labels, values, marker="o", color=color)
     else:
         raise ValueError(f"Unsupported chart type: {chart_type}")
 
@@ -191,106 +288,43 @@ def create_pdf(
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    doc = SimpleDocTemplate(str(out_path), pagesize=A4)
-    styles = getSampleStyleSheet()
-    story: List[object] = []
+    logo_default = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
 
-    logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
+    builder = PdfReportBuilder(out_path)
 
-    # Determine if new schema is used
     has_sections = isinstance(data, dict) and "sections" in data
 
-    tmp_pngs: List[str] = []
-
     if has_sections:
-        if logo_path.exists():
-            story.append(
-                Image(
-                    str(logo_path),
-                    width=80,
-                    height=80,
-                    kind="proportional",
-                    hAlign="CENTER",
-                )
-            )
-            story.append(Spacer(1, 12))
-
-        story.append(Paragraph(data.get("title", "Data Assistant Report"), styles["Title"]))
-        timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
-        story.append(Paragraph(timestamp_text, styles["Normal"]))
-        story.append(Spacer(1, 12))
-
+        cover = data.get("cover", {})
+        builder.add_cover(
+            data.get("title", "Data Assistant Report"),
+            cover.get(
+                "logo_path", str(logo_default) if logo_default.exists() else None
+            ),
+            data.get("summary"),
+        )
         for ins in data.get("insights", []):
-            story.append(Paragraph(ins, styles["Normal"]))
-            story.append(Spacer(1, 6))
-
-        for i, section in enumerate(data.get("sections", []), start=1):
-            story.append(Spacer(1, 12))
-            story.append(Paragraph(section.get("title", f"Section {i}"), styles["Heading2"]))
-            stype = section.get("type")
-            if stype == "paragraph":
-                story.append(Paragraph(section.get("text", ""), styles["Normal"]))
-            elif stype == "table":
-                table_data = section.get("data", {})
-                if isinstance(table_data, dict):
-                    table = _build_table(table_data)
-                else:
-                    table = _build_table_from_list(table_data)
-                story.append(table)
-            elif stype == "chart":
-                chart_spec = section.get("chart_spec", {})
-                png = create_chart(chart_spec)
-                story.append(Image(png, width=400, height=250))
-                tmp_pngs.append(png)
-            else:
-                story.append(Paragraph("Unsupported section type", styles["Italic"]))
-
-        doc.build(story)
+            builder.add_section({"title": "", "type": "paragraph", "text": ins})
+        for section in data.get("sections", []):
+            builder.add_section(section)
     else:
-        # Fallback to legacy behaviour for plain dicts
-        if logo_path.exists():
-            story.append(
-                Image(
-                    str(logo_path),
-                    width=80,
-                    height=80,
-                    kind="proportional",
-                    hAlign="CENTER",
-                )
-            )
-            story.append(Spacer(1, 12))
-
-        story.append(Paragraph("Data Assistant Report", styles["Title"]))
-        timestamp_text = f"Generated: {_dt.datetime.now().isoformat(timespec='seconds')}"
-        story.append(Paragraph(timestamp_text, styles["Normal"]))
-        story.append(Spacer(1, 12))
-        story.append(_build_table(data))
-
+        builder.add_cover(
+            "Data Assistant Report",
+            str(logo_default) if logo_default.exists() else None,
+        )
+        builder.add_section({"title": "Data", "type": "table", "data": data})
         if include_chart:
-            numeric_items = {k: v for k, v in data.items() if isinstance(v, (int, float))}
+            numeric_items = {
+                k: v for k, v in data.items() if isinstance(v, (int, float))
+            }
             if len(numeric_items) >= 3:
                 labels, values = zip(*numeric_items.items())
-                fig, ax = _plt.subplots(figsize=(6, 3.5))
-                filtered = [(k, v) for k, v in numeric_items.items() if v]
-                labels, values = zip(*filtered) if filtered else (labels, values)
-                ax.bar(range(len(labels)), values, color="#143d8d")
-                ax.set_ylabel("Value (€)")
-                ax.set_xticks(range(len(labels)))
-                ax.set_xticklabels(labels, rotation=45, ha="right")
-                fig.tight_layout()
-                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                fig.savefig(tmp.name, bbox_inches="tight")
-                _plt.close(fig)
-                story.append(Spacer(1, 24))
-                story.append(Image(tmp.name, width=400, height=250))
-                tmp_pngs.append(tmp.name)
+                chart_spec = {"chart_type": "bar", "labels": labels, "values": values}
+                builder.add_section(
+                    {"title": "Chart", "type": "chart", "chart_spec": chart_spec}
+                )
 
-        doc.build(story)
-
-    for png in tmp_pngs:
-        if os.path.exists(png):
-            os.unlink(png)
-    return str(out_path.resolve())
+    return builder.save()
 
 
 if __name__ == "__main__":

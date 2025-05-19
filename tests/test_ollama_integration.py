@@ -4,15 +4,15 @@ import warnings
 from agent.ollama_integration import (
     check_ollama_available,
     get_ollama_model_name,
-    create_ollama_model
+    create_ollama_model,
 )
 from agent import answer
 import httpx
 
 # Suppress the coroutine warning for tests
-warnings.filterwarnings("ignore",
-                       message="coroutine '.*' was never awaited",
-                       category=RuntimeWarning)
+warnings.filterwarnings(
+    "ignore", message="coroutine '.*' was never awaited", category=RuntimeWarning
+)
 
 
 def test_check_ollama_available():
@@ -58,7 +58,7 @@ def test_ollama_provider():
         mock_result.final_output = "The answer to 2+2 is 4"
 
         # Patch the asyncio run function to avoid actual API calls
-        with patch('agent.assistant.asyncio.run', return_value=mock_result):
+        with patch("agent.assistant.asyncio.run", return_value=mock_result):
             # This should now run without errors since the API call is mocked
             response, _ = answer("What is 2+2?", provider="ollama")
 
@@ -97,6 +97,7 @@ def test_ollama_provider():
 
     except Exception as e:
         import traceback
+
         print(f"❌ Error testing Ollama provider: {str(e)}")
         print(traceback.format_exc())
         raise
@@ -113,6 +114,7 @@ def test_ollama_tool_knowledge():
         # Create a session to maintain context
         from agent.session_manager import session_manager
         from agents.mcp import MCPServerSse
+
         session_id = session_manager.create_session()
         print(f"\nCreated test session: {session_id}")
 
@@ -188,32 +190,45 @@ def test_ollama_tool_knowledge():
         found_terms = [term for term in expected_terms if term in response.lower()]
 
         print(f"Found terms: {found_terms}")
-        assert found_terms, f"Expected tool terms ({', '.join(expected_terms)}) not found in response"
+        assert found_terms, (
+            f"Expected tool terms ({', '.join(expected_terms)}) not found in response"
+        )
 
         # Check for specific error messages
-        assert "[] is too short - 'messages'" not in response, "Error: Empty messages array sent to Ollama API"
+        assert "[] is too short - 'messages'" not in response, (
+            "Error: Empty messages array sent to Ollama API"
+        )
 
         # Step 3: Test conversation history and follow-up
         print("\n3️⃣ Testing follow-up question...")
         followup_query = "Can you list the tools again and explain what each one does?"
-        followup_response, _ = answer(followup_query, provider="ollama", session_id=session_id)
+        followup_response, _ = answer(
+            followup_query, provider="ollama", session_id=session_id
+        )
         print(f"Follow-up response: {followup_response[:500]}...")
 
         # Verify the response has relevant terms
         followup_terms = ["csv", "sql", "pdf", "database", "file"]
-        found_followup_terms = [term for term in followup_terms if term in followup_response.lower()]
-        assert found_followup_terms, f"Follow-up response doesn't contain expected terms"
+        found_followup_terms = [
+            term for term in followup_terms if term in followup_response.lower()
+        ]
+        assert found_followup_terms, "Follow-up response doesn't contain expected terms"
 
         # Final check: Conversation history maintained
         history = session_manager.get_messages(session_id)
         print(f"\n✅ Session maintained context through {len(history)} messages")
-        assert len(history) >= 4, "Expected at least 4 messages in conversation history (2 queries + 2 responses)"
+        assert len(history) >= 4, (
+            "Expected at least 4 messages in conversation history (2 queries + 2 responses)"
+        )
 
         print("\n✅ Direct Ollama integration test PASSED.")
-        print(f"   Found terms in responses: {', '.join(found_terms + found_followup_terms)}")
+        print(
+            f"   Found terms in responses: {', '.join(found_terms + found_followup_terms)}"
+        )
 
     except Exception as e:
         import traceback
+
         print(f"\n❌ Direct Ollama integration test FAILED: {str(e)}")
         print(traceback.format_exc())
         raise
@@ -258,13 +273,13 @@ def test_provider_fallback():
     # Test fallback if Ollama is unavailable
     if not check_ollama_available():
         response, result = answer("Test", provider="ollama")
-        assert (
-            "⚠️ Ollama not available" in response
-        ), "Expected unavailable message for Ollama provider"
+        assert "⚠️ Ollama not available" in response, (
+            "Expected unavailable message for Ollama provider"
+        )
 
     # Test fallback if OpenAI key is not set
     if os.getenv("OPENAI_API_KEY") is None:
         response, result = answer("Test", provider="openai")
-        assert (
-            "⚠️ OPENAI_API_KEY not set" in response
-        ), "Expected API key message for OpenAI provider"
+        assert "⚠️ OPENAI_API_KEY not set" in response, (
+            "Expected API key message for OpenAI provider"
+        )

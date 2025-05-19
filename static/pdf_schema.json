@@ -19,6 +19,10 @@
       },
       "additionalProperties": false
     },
+    "summary": {
+      "type": "string",
+      "description": "Short executive summary displayed on the cover page"
+    },
     "insights": {
       "type": "array",
       "description": "List of insight paragraphs to highlight on the first page",
@@ -35,14 +39,13 @@
           "text": {"type": "string"},
           "data": {"type": ["array", "object"]},
           "chart_spec": {
-            "type": "object",
-            "properties": {
-              "chart_type": {"type": "string", "enum": ["bar", "pie", "line"]},
-              "labels": {"type": "array", "items": {"type": "string"}},
-              "values": {"type": "array", "items": {"type": "number"}}
-            },
-            "required": ["chart_type", "labels", "values"],
-            "additionalProperties": false
+            "oneOf": [
+              {"$ref": "#/definitions/chartSpec"},
+              {
+                "type": "array",
+                "items": {"$ref": "#/definitions/chartSpec"}
+              }
+            ]
           }
         },
         "required": ["title", "type"],
@@ -51,5 +54,20 @@
     }
   },
   "required": ["title", "sections"],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "definitions": {
+    "chartSpec": {
+      "type": "object",
+      "properties": {
+        "chart_type": {"type": "string", "enum": ["bar", "pie", "line"]},
+        "labels": {"type": "array", "items": {"type": ["string", "number"]}},
+        "values": {"type": "array", "items": {"type": "number"}},
+        "color": {"type": "string", "description": "Hex color"},
+        "width": {"type": "number", "description": "Figure width in inches"},
+        "height": {"type": "number", "description": "Figure height in inches"}
+      },
+      "required": ["chart_type", "labels", "values"],
+      "additionalProperties": false
+    }
+  }
 }
