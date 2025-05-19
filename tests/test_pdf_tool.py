@@ -231,3 +231,54 @@ def test_empty_value_handling(tmp_path):
     }
     output_path = create_pdf(data, out_path=tmp_path / "empty_values.pdf")
     assert Path(output_path).exists()
+
+
+def _count_images(pdf_path: Path) -> int:
+    with open(pdf_path, "rb") as f:
+        return f.read().count(b"/Subtype /Image")
+
+
+def test_pdf_with_sections_and_charts(tmp_path):
+    """Generate a PDF using the new schema with multiple chart types."""
+    data = {
+        "title": "Complex Report",
+        "insights": ["Insight one", "Another insight"],
+        "sections": [
+            {
+                "title": "Numbers",
+                "type": "table",
+                "data": [{"a": 1, "b": 2}, {"a": 3, "b": 4}],
+            },
+            {
+                "title": "Bar Chart",
+                "type": "chart",
+                "chart_spec": {
+                    "chart_type": "bar",
+                    "labels": ["A", "B"],
+                    "values": [1, 2],
+                },
+            },
+            {
+                "title": "Pie Chart",
+                "type": "chart",
+                "chart_spec": {
+                    "chart_type": "pie",
+                    "labels": ["X", "Y"],
+                    "values": [3, 7],
+                },
+            },
+            {
+                "title": "Line Chart",
+                "type": "chart",
+                "chart_spec": {
+                    "chart_type": "line",
+                    "labels": [1, 2, 3],
+                    "values": [1, 4, 9],
+                },
+            },
+        ],
+    }
+
+    pdf_path = Path(create_pdf(data, out_path=tmp_path / "complex.pdf"))
+    assert pdf_path.exists()
+    assert _count_images(pdf_path) >= 4
