@@ -8,16 +8,17 @@
 
 This project implements Model Context Protocol (MCP) tools for data analysis. Key areas:
 
-| Directory  | Purpose                                               | Key Files                     |
-| ---------- | ----------------------------------------------------- | ----------------------------- |
-| `agent/`   | LLM assistant logic and session management            | `assistant.py`, `session_manager.py` |
-| `tools/`   | Core MCP tools (SQL, CSV, PDF)                        | `sql_tool.py`, `csv_tool.py`, `pdf_tool.py` |
-| `tests/`   | Unit and integration tests                            | Test files mirror source structure |
-| `static/`  | Static assets including MCP schema                    | `schema.json` (MCP tool definitions) |
-| `data/`    | Sample datasets for testing                           | `sales.db`, `people.csv` |
-| `reports/` | Generated PDF reports output directory                | Empty initially, populated during runtime |
+| Directory  | Purpose                                    | Key Files                                   |
+| ---------- | ------------------------------------------ | ------------------------------------------- |
+| `agent/`   | LLM assistant logic and session management | `assistant.py`, `session_manager.py`        |
+| `tools/`   | Core MCP tools (SQL, CSV, PDF)             | `sql_tool.py`, `csv_tool.py`, `pdf_tool.py` |
+| `tests/`   | Unit and integration tests                 | Test files mirror source structure          |
+| `static/`  | Static assets including MCP schema         | `schema.json` (MCP tool definitions)        |
+| `data/`    | Sample datasets for testing                | `sales.db`, `people.csv`                    |
+| `reports/` | Generated PDF reports output directory     | Empty initially, populated during runtime   |
 
 Key entry points:
+
 - `app.py`: Main Gradio application
 - `scripts/demo_cli.py`: Command-line interface
 
@@ -26,12 +27,14 @@ Key entry points:
 ## 2. Development Environment Setup
 
 ### Environment Variables
+
 ```bash
 export PYTHONPATH="."
 export PROJECT_ROOT=$(pwd)
 ```
 
 ### Dependencies
+
 All required packages are in `requirements.txt`. The `wheelhouse/` directory contains pre-downloaded packages for offline installation:
 
 ```bash
@@ -39,6 +42,7 @@ pip install -r requirements.txt --find-links wheelhouse/
 ```
 
 ### Optional Secrets
+
 - `OPENAI_API_KEY`: Required only if using OpenAI models (not needed for Ollama)
 
 ---
@@ -65,6 +69,7 @@ bandit -r tools/ agent/ -ll -x /tests/
 ```
 
 ### Testing Best Practices
+
 - Write tests first (TDD approach encouraged)
 - Use pytest fixtures for common setup
 - Mock external services (OpenAI, Ollama)
@@ -100,6 +105,7 @@ Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `chore`, `ci`
 Scope: module name (e.g., `agent`, `tools`, `sql`, `csv`, `pdf`)
 
 Example:
+
 ```
 feat(sql): add support for PostgreSQL connections
 
@@ -123,6 +129,7 @@ When developing MCP tools:
 - [ ] Adds tool documentation to README.md
 
 MCP tools must be:
+
 - Stateless and idempotent
 - Properly error-handled with meaningful error responses
 - Well-documented with examples
@@ -144,31 +151,35 @@ When working on the Assistant module:
 
 ## 8. Quick Troubleshooting
 
-| Issue                       | Solution                                           |
-| --------------------------- | -------------------------------------------------- |
-| ImportError                 | Check requirements.txt and wheelhouse/ directory   |
-| mypy errors                 | Add type hints or refactor the code               |
-| Tool execution fails        | Check schema.json alignment with implementation   |
-| Assistant connection errors | Verify OPENAI_API_KEY or Ollama service status    |
-| CI pipeline fails           | Check GitHub Actions logs and fix locally first   |
+| Issue                       | Solution                                         |
+| --------------------------- | ------------------------------------------------ |
+| ImportError                 | Check requirements.txt and wheelhouse/ directory |
+| mypy errors                 | Add type hints or refactor the code              |
+| Tool execution fails        | Check schema.json alignment with implementation  |
+| Assistant connection errors | Verify OPENAI_API_KEY or Ollama service status   |
+| CI pipeline fails           | Check GitHub Actions logs and fix locally first  |
 
 ---
 
 ## 9. Important Technical Details
 
 ### Database Support
+
 - SQLite (default) and PostgreSQL support
 - Connection strings handled via SQL tool
 
 ### UI Framework
+
 - Gradio 5.29+ for web interface
 - Session-based state management
 
 ### PDF Generation
+
 - ReportLab for PDF creation
 - Matplotlib for charts/visualizations
 
 ### Model Support
+
 - OpenAI API integration
 - Ollama for local models
 - Dynamic model switching
